@@ -47,6 +47,7 @@ public class GameField extends JPanel implements ActionListener {
         createApple();
     }
 
+
     public void createApple() {
         mouseX = random.nextInt(20) * DOT_SIZE;
         mouseY = random.nextInt(20) * DOT_SIZE;
@@ -109,6 +110,36 @@ public class GameField extends JPanel implements ActionListener {
         if (x[0] > SIZE || x[0] < 0 || y[0] > SIZE || y[0] < 0) {
             inGame = false;
         }
+
+        if (!inGame) {
+            gameOver();
+        }
+    }
+
+    private void gameOver() {
+        timer.stop();
+        repaint();
+
+        int choice = JOptionPane.showConfirmDialog(
+                this,
+                "Game Over! Do you want to restart?",
+                "Game Over",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (choice == JOptionPane.YES_OPTION) {
+            restartGame();
+        } else {
+            System.exit(0);
+        }
+    }
+
+    private void restartGame() {
+        inGame = true;
+        dots = 3;
+        initGame();
+        timer.start();
+        repaint();
     }
 
     @Override
@@ -126,6 +157,7 @@ public class GameField extends JPanel implements ActionListener {
         public void keyPressed(KeyEvent e) {
             super.keyPressed(e);
             int key = e.getKeyCode();
+
             if (key == KeyEvent.VK_LEFT && currentDirection != Direction.RIGHT) {
                 currentDirection = Direction.LEFT;
             }
@@ -138,6 +170,10 @@ public class GameField extends JPanel implements ActionListener {
             if (key == KeyEvent.VK_DOWN && currentDirection != Direction.UP) {
                 currentDirection = Direction.DOWN;
             }
+            if (key == KeyEvent.VK_R && !inGame) {
+                restartGame();
+            }
         }
     }
 }
+
