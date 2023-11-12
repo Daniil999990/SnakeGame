@@ -23,10 +23,16 @@ public class GameField extends JPanel implements ActionListener {
     private Timer timer;
     private boolean inGame = true;
 
+    private int score = 0; // Лічильник очок
+
     private enum Direction { UP, DOWN, LEFT, RIGHT }
 
     private Direction currentDirection = Direction.RIGHT;
     private Random random = new Random();
+
+    private boolean paused = false; // Змінна для відстеження стану паузи
+
+    private boolean spaceKeyPressed = false;
 
     public GameField() {
         setBackground(Color.white);
@@ -34,10 +40,51 @@ public class GameField extends JPanel implements ActionListener {
         initGame();
         addKeyListener(new FieldKeyListener());
         setFocusable(true);
+
+        // Додали обробники для подій клавіші SPACE
+        getInputMap().put(KeyStroke.getKeyStroke("pressed SPACE"), "pausePressed");
+        getInputMap().put(KeyStroke.getKeyStroke("released SPACE"), "pauseReleased");
+
+        getActionMap().put("pausePressed", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Перевірка, чи клавіша SPACE не була натиснута раніше
+                if (!spaceKeyPressed) {
+                    togglePause(); // Викликаємо метод для включення або виключення паузи
+                    spaceKeyPressed = true;
+                }
+            }
+        });
+
+        getActionMap().put("pauseReleased", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                spaceKeyPressed = false; // Скидаємо флаг при відпусканні клавіші SPACE
+            }
+        });
+    }
+
+    private void togglePause() {
+        paused = !paused;
+        if (paused) {
+            timer.stop();
+        } else {
+            timer.start();
+        }
+        repaint();
+    }
+
+    private void drawPauseScreen(Graphics g) {
+        // Виведення повідомлення про паузу на екран
+        String pauseMessage = "Paused";
+        g.setColor(Color.BLACK);
+        g.drawString(pauseMessage, GAME_OVER_X, GAME_OVER_Y);
     }
 
     public void initGame() {
         dots = 3;
+        score = 0; // Очистити лічильник очок при початку нової гри
+
         for (int i = 0; i < dots; i++) {
             x[i] = 48 - i * DOT_SIZE;
             y[i] = 48;
@@ -46,7 +93,6 @@ public class GameField extends JPanel implements ActionListener {
         timer.start();
         createApple();
     }
-
 
     public void createApple() {
         mouseX = random.nextInt(20) * DOT_SIZE;
@@ -63,16 +109,27 @@ public class GameField extends JPanel implements ActionListener {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        if (inGame) {
+        if (paused) {
+            drawPauseScreen(g); // Вивести екран паузи, якщо гра на паузі
+        } else if (inGame) {
             g.drawImage(mouse, mouseX, mouseY, this);
             for (int i = 0; i < dots; i++) {
                 g.drawImage(snake, x[i], y[i], this);
             }
+            drawScore(g); // Вивести лічильник очок на екран
         } else {
-            String str = "Game Over";
+            // Вивести повідомлення про кінець гри та результат
+            String str = "Game Over. Score: " + score;
             g.setColor(Color.BLACK);
             g.drawString(str, GAME_OVER_X, GAME_OVER_Y);
         }
+    }
+
+    private void drawScore(Graphics g) {
+        // Вивести лічильник очок на екран
+        String scoreStr = "Score: " + score;
+        g.setColor(Color.BLACK);
+        g.drawString(scoreStr, 10, 20);
     }
 
     public void move() {
@@ -98,7 +155,13 @@ public class GameField extends JPanel implements ActionListener {
         if (x[0] == mouseX && y[0] == mouseY) {
             dots++;
             createApple();
+            increaseScore(); // Збільшити лічильник очок при з'їданні миші
         }
+    }
+
+    private void increaseScore() {
+        // Збільшити лічильник очок
+        score++;
     }
 
     public void checkCollisions() {
@@ -120,6 +183,7 @@ public class GameField extends JPanel implements ActionListener {
         timer.stop();
         repaint();
 
+        // Повідомлення про кінець гри та опції для гравця
         int choice = JOptionPane.showConfirmDialog(
                 this,
                 "Game Over! Do you want to restart?",
@@ -130,11 +194,14 @@ public class GameField extends JPanel implements ActionListener {
         if (choice == JOptionPane.YES_OPTION) {
             restartGame();
         } else {
+            // Вивести повідомлення про кінець гри та результат
+            JOptionPane.showMessageDialog(this, "Thanks for playing! Your score: " + score);
             System.exit(0);
         }
     }
 
     private void restartGame() {
+        // Перезапустити гру знову
         inGame = true;
         dots = 3;
         initGame();
@@ -173,7 +240,13 @@ public class GameField extends JPanel implements ActionListener {
             if (key == KeyEvent.VK_R && !inGame) {
                 restartGame();
             }
+            if (key == KeyEvent.VK_SPACE) {
+                // Перевірка, чи клавіша SPACE не була натиснута раніше
+                if (!spaceKeyPressed) {
+                    togglePause(); // Викликаємо метод для включення або виключення паузи
+                    spaceKeyPressed = true;
+                }
+            }
         }
     }
 }
-
